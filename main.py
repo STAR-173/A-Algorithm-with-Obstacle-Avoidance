@@ -1,5 +1,49 @@
 import pygame
 
+import heapq
+
+def heuristic(a, b):  # Manhattan distance as heuristic for simplicity
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+def astar(map, start, end):
+    neighbors = [(0,1),(0,-1),(1,0),(-1,0)] # 4-directional movement
+
+    open_set = []
+    heapq.heappush(open_set, (0, start)) 
+    came_from = {}
+    cost_so_far = {}
+    came_from[start] = None
+    cost_so_far[start] = 0
+
+    while open_set:
+        _, current = heapq.heappop(open_set)
+
+        if current == end:
+            break
+
+        for next in neighbors:
+            new_x = current[0] + next[0]
+            new_y = current[1] + next[1]
+            if (0 <= new_x < len(map[0]) and 0 <= new_y < len(map)  # Check map bounds
+                    and map[new_y][new_x] != '1'):  # Check if not a wall
+                new_cost = cost_so_far[current] + 1 
+                if (new_x, new_y) not in cost_so_far or new_cost < cost_so_far[new_x, new_y]:
+                    cost_so_far[new_x, new_y] = new_cost
+                    priority = new_cost + heuristic(end, (new_x, new_y))
+                    heapq.heappush(open_set, (priority, (new_x, new_y)))
+                    came_from[new_x, new_y] = current
+
+    return reconstruct_path(came_from, start, end)
+
+def reconstruct_path(came_from, start, end):
+    path = []
+    current = end
+    while current != start:
+        path.append(current)
+        current = came_from[current]
+    path.reverse()  # Return from start to end
+    return path
+
 TILESIZE = 64
 WIDTH = TILESIZE * 16
 HEIGHT = TILESIZE * 12
@@ -108,6 +152,8 @@ clock = pygame.time.Clock()
 
 all_sprites = pygame.sprite.Group()
 walls = pygame.sprite.Group()
+path = []
+
 for row, tiles in enumerate(MAP):
     for col, tile in enumerate(tiles):
         if tile == "1":
@@ -141,6 +187,12 @@ while run:
                 destination = Destination(grid_x, grid_y)
                 all_sprites.add(destination)
     
+    if destination is not None:  
+        if pygame.key.get_pressed()[pygame.K_SPACE]:  # Check for spacebar press
+            path = astar(MAP, (int(player.pos.x // TILESIZE), int(player.pos.y // TILESIZE)), 
+                         (int(destination.rect.x // TILESIZE), int(destination.rect.y // TILESIZE)))
+    
+    
     player.update(dt, walls)
     
     window.fill((255, 255, 255))
@@ -153,6 +205,10 @@ while run:
     walls.draw(window)
     for sprite in all_sprites:
         window.blit(sprite.image, sprite.rect)
+    
+    if path:
+        for x, y in path:
+            pygame.draw.rect(window, (0, 255, 255), (x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE)) # Cyan for path
 
     pygame.display.flip()
     
