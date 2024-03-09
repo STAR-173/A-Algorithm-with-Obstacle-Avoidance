@@ -1,5 +1,4 @@
 import pygame
-
 import heapq
 
 def calculate_obstacle_proximity(map, x, y, max_distance=5):
