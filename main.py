@@ -2,8 +2,26 @@ import pygame
 
 import heapq
 
-def heuristic(a, b):  # Manhattan distance as heuristic for simplicity
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+def calculate_obstacle_proximity(map, x, y, max_distance=5):
+    obstacle_cost = 0
+    neighbors = [(0,1),(0,-1),(1,0),(-1,0)]
+
+    for dx, dy in neighbors:
+        for distance in range(1, max_distance + 1): 
+            new_x = x + dx * distance
+            new_y = y + dy * distance
+            if 0 <= new_x < len(map[0]) and 0 <= new_y < len(map): 
+                if map[new_y][new_x] == '1':
+                    obstacle_cost += 1 / distance  # Closer obstacles have a higher cost
+                    break  # Stop once we find an obstacle in a direction 
+    return obstacle_cost
+
+def heuristic(a, b): 
+    distance = abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
+    obstacle_proximity_a = calculate_obstacle_proximity(MAP, a[0], a[1])
+    obstacle_proximity_b = calculate_obstacle_proximity(MAP, b[0], b[1])
+    return distance + obstacle_proximity_a + 5 * obstacle_proximity_b  # Weight towards target's proximity
+
 
 def astar(map, start, end):
     neighbors = [(0,1),(0,-1),(1,0),(-1,0)] # 4-directional movement
