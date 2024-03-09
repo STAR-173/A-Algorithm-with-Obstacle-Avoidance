@@ -1,6 +1,6 @@
 import pygame
 
-TILESIZE = 32
+TILESIZE = 64
 WIDTH = TILESIZE * 16
 HEIGHT = TILESIZE * 12
 PLAYER_SPEED = 3 * TILESIZE
@@ -17,6 +17,10 @@ MAP = ["1111111111111111",
        "1........11111.1",
        "1..............1",
        "1111111111111111"]
+
+def get_grid_pos(mouse_pos):
+    """Calculates the grid coordinates from mouse position"""
+    return mouse_pos[0] // TILESIZE, mouse_pos[1] // TILESIZE
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -90,6 +94,14 @@ class Obstacle(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0))
         self.rect = self.image.get_rect(topleft = (x * TILESIZE, y * TILESIZE))
 
+class Destination(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((TILESIZE, TILESIZE))
+        self.image.fill((0, 255, 0))  # Green color for destination
+        self.rect = self.image.get_rect(topleft=(x * TILESIZE, y * TILESIZE))
+
+destination = None
 pygame.init()
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -112,6 +124,22 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        # Check for left mouse click to place player
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_pos = pygame.mouse.get_pos()
+            grid_x, grid_y = get_grid_pos(mouse_pos)
+            if MAP[grid_y][grid_x] != "1":
+                player.pos = pygame.math.Vector2(grid_x, grid_y) * TILESIZE
+                player.rect.topleft = player.pos
+        # Check for right mouse click to update destination
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+            if destination is not None:  # Remove existing destination if present
+                all_sprites.remove(destination)
+            mouse_pos = pygame.mouse.get_pos()
+            grid_x, grid_y = get_grid_pos(mouse_pos)
+            if MAP[grid_y][grid_x] != "1":
+                destination = Destination(grid_x, grid_y)
+                all_sprites.add(destination)
     
     player.update(dt, walls)
     
