@@ -16,14 +16,17 @@ def calculate_obstacle_proximity(map, x, y, max_distance=5):
                     break  # Stop once we find an obstacle in a direction 
     return obstacle_cost
 
-def heuristic(a, b): 
+def heuristic_original(a, b):  # Your original heuristic (likely Manhattan distance)
+    return abs(a[0] - b[0]) + abs(a[1] - b[1]) 
+
+def heuristic_obstacle_aware(a, b): 
     distance = abs(a[0] - b[0]) + abs(a[1] - b[1])  # Manhattan distance
     obstacle_proximity_a = calculate_obstacle_proximity(MAP, a[0], a[1])
     obstacle_proximity_b = calculate_obstacle_proximity(MAP, b[0], b[1])
     return distance + obstacle_proximity_a + 5 * obstacle_proximity_b  # Weight towards target's proximity
 
 
-def astar(map, start, end):
+def astar(map, start, end, heuristic):
     neighbors = [(0,1),(0,-1),(1,0),(-1,0)] # 4-directional movement
 
     open_set = []
@@ -185,6 +188,8 @@ for row, tiles in enumerate(MAP):
 run = True
 while run:
     dt = clock.tick(60) / 1000
+    current_heuristic = heuristic_original  
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -205,10 +210,19 @@ while run:
                 destination = Destination(grid_x, grid_y)
                 all_sprites.add(destination)
     
-    if destination is not None:  
-        if pygame.key.get_pressed()[pygame.K_SPACE]:  # Check for spacebar press
+    if destination is not None:  # Destination exists
+        current_heuristic = heuristic_original  # Initialize heuristic
+
+        if pygame.key.get_pressed()[pygame.K_SPACE]:
+            current_heuristic = heuristic_obstacle_aware
             path = astar(MAP, (int(player.pos.x // TILESIZE), int(player.pos.y // TILESIZE)), 
-                         (int(destination.rect.x // TILESIZE), int(destination.rect.y // TILESIZE)))
+                 (int(destination.rect.x // TILESIZE), int(destination.rect.y // TILESIZE)), current_heuristic)
+            
+        elif pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
+            current_heuristic = heuristic_original
+
+            path = astar(MAP, (int(player.pos.x // TILESIZE), int(player.pos.y // TILESIZE)), 
+                 (int(destination.rect.x // TILESIZE), int(destination.rect.y // TILESIZE)), current_heuristic) 
     
     
     player.update(dt, walls)
